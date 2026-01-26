@@ -1,0 +1,50 @@
+name: ssp_nfc_configurator
+description: NFC tag configuration tool for SSP restaurants
+publish_to: 'none'
+version: 1.0.0+1
+
+environment:
+  sdk: '>=3.0.0 <4.0.0'
+
+dependencies:
+  flutter:
+    sdk: flutter
+
+  # State Management
+  flutter_riverpod: ^2.4.9
+
+  # GraphQL
+  graphql_flutter: ^5.1.2
+
+  # NFC
+  nfc_manager: ^3.3.0
+
+  # Storage
+  flutter_secure_storage: ^9.0.0
+  shared_preferences: ^2.2.2
+
+  # Navigation
+  go_router: ^13.0.0
+
+  # UI
+  flutter_svg: ^2.0.9
+  shimmer: ^3.0.0
+
+  # Utilities
+  intl: ^0.18.1
+  flutter_dotenv: ^5.1.0
+
+dev_dependencies:
+  flutter_test:
+    sdk: flutter
+  flutter_lints: ^3.0.1
+  mockito: ^5.4.4
+  build_runner: ^2.4.8
+
+flutter:
+  uses-material-design: true
+
+  assets:
+    - assets/images/
+    - assets/animations/
+    - .env
