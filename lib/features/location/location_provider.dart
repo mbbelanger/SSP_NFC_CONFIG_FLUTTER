@@ -4,6 +4,7 @@ import 'package:graphql_flutter/graphql_flutter.dart';
 import '../../core/api/graphql_client.dart';
 import '../../core/api/graphql_queries.dart';
 import '../../models/location.dart';
+import '../auth/auth_provider.dart';
 
 class LocationState {
   final bool isLoading;
@@ -38,18 +39,27 @@ class LocationState {
   }
 }
 
+// Use autoDispose so provider is recreated when auth state changes
 final locationStateProvider =
-    StateNotifierProvider<LocationNotifier, LocationState>((ref) {
+    StateNotifierProvider.autoDispose<LocationNotifier, LocationState>((ref) {
   final client = ref.watch(graphqlRawClientProvider);
-  return LocationNotifier(client);
+
+  // Watch auth state - when it changes, this provider will be recreated
+  final authState = ref.watch(authStateProvider);
+
+  // Only create notifier and load locations if authenticated
+  final notifier = LocationNotifier(client);
+  if (authState.isAuthenticated) {
+    // Delay loading to ensure token is available in AuthLink
+    Future.microtask(() => notifier.loadLocations());
+  }
+  return notifier;
 });
 
 class LocationNotifier extends StateNotifier<LocationState> {
   final GraphQLClient _client;
 
-  LocationNotifier(this._client) : super(const LocationState()) {
-    loadLocations();
-  }
+  LocationNotifier(this._client) : super(const LocationState());
 
   Future<void> loadLocations() async {
     state = state.copyWith(isLoading: true, errorMessage: null);

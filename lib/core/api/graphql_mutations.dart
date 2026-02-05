@@ -1,22 +1,112 @@
 class GraphQLMutations {
-  // Login mutation
+  // Login mutation with device token support
   static const String loginSSPUser = '''
-    mutation LoginSSPUser(\$email: String!, \$password: String!) {
-      loginSSPUser(email: \$email, password: \$password) {
+    mutation LoginSSPUser(\$email: String!, \$password: String!, \$device_token: String) {
+      loginSSPUser(email: \$email, password: \$password, device_token: \$device_token) {
         token
+        expires_in
+        requiresTwoFactor
+        challenge_token
+        device_token
+        requiresOrganizationSelection
+        selection_token
+        user {
+          id
+          name
+          email
+          two_factor_enabled
+          locations {
+            id
+            name
+            address
+            city
+            state
+            timezone
+          }
+          organization {
+            id
+            name
+          }
+        }
+        organizations {
+          id
+          name
+        }
+      }
+    }
+  ''';
+
+  // Verify two-factor authentication with remember device support
+  static const String verifyTwoFactorAuthentication = '''
+    mutation VerifyTwoFactorAuthentication(
+      \$challengeToken: String!,
+      \$code: String,
+      \$recoveryCode: String,
+      \$rememberDevice: Boolean
+    ) {
+      verifyTwoFactorAuthentication(
+        challengeToken: \$challengeToken,
+        code: \$code,
+        recoveryCode: \$recoveryCode,
+        rememberDevice: \$rememberDevice
+      ) {
+        success
+        status
+        token
+        device_token
         user {
           id
           name
           email
         }
-        requiresTwoFactor
-        requiresOrganizationSelection
-        challenge_token
-        selection_token
-        organizations {
+      }
+    }
+  ''';
+
+  // Resend 2FA code
+  static const String resendTwoFactorCode = '''
+    mutation ResendTwoFactorCode(\$challengeToken: String!, \$method: TwoFactorMethod) {
+      resendTwoFactorCode(challengeToken: \$challengeToken, method: \$method) {
+        success
+        message
+        expires_at
+      }
+    }
+  ''';
+
+  // Select organization (for multi-org users)
+  static const String selectOrganization = '''
+    mutation SelectOrganization(\$selectionToken: String!, \$organizationId: ID!) {
+      selectOrganization(selectionToken: \$selectionToken, organizationId: \$organizationId) {
+        token
+        user {
           id
           name
+          email
+          locations {
+            id
+            name
+            address
+            city
+            state
+            timezone
+          }
+          organization {
+            id
+            name
+          }
         }
+      }
+    }
+  ''';
+
+  // Refresh token
+  static const String refreshToken = '''
+    mutation RefreshToken(\$refreshToken: String!) {
+      refreshToken(refresh_token: \$refreshToken) {
+        token
+        refresh_token
+        expires_in
       }
     }
   ''';
@@ -72,29 +162,22 @@ class GraphQLMutations {
     }
   ''';
 
-  // Verify two-factor authentication
-  static const String verifyTwoFactorAuthentication = '''
-    mutation VerifyTwoFactorAuthentication(\$challengeToken: String!, \$code: String!) {
-      verifyTwoFactorAuthentication(challengeToken: \$challengeToken, code: \$code) {
-        token
-        user {
+  // Claim DNA tag from inventory and assign to table
+  // Used for pre-encoded NTAG 424 DNA tags from GoToTags
+  static const String claimNFCTag = '''
+    mutation ClaimNFCTag(\$input: ClaimNFCTagInput!) {
+      claimNFCTag(input: \$input) {
+        id
+        uid
+        tagType
+        status
+        label
+        writtenUrl
+        registeredAt
+        table {
           id
           name
-          email
-        }
-      }
-    }
-  ''';
-
-  // Select organization (for multi-org users)
-  static const String selectOrganization = '''
-    mutation SelectOrganization(\$selectionToken: String!, \$organizationId: ID!) {
-      selectOrganization(selectionToken: \$selectionToken, organizationId: \$organizationId) {
-        token
-        user {
-          id
-          name
-          email
+          local_id
         }
       }
     }

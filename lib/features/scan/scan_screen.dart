@@ -64,6 +64,7 @@ class ScanScreen extends ConsumerWidget {
             tables: tables,
             selectedTableId: scanState.selectedTableId,
             writeUrlEnabled: scanState.writeUrlEnabled,
+            isDnaTag: scanState.isDnaTag,
             onTableSelected: (tableId) {
               ref.read(scanStateProvider.notifier).selectTable(tableId);
             },
@@ -106,21 +107,38 @@ class ScanScreen extends ConsumerWidget {
         );
 
       case ScanStatus.registering:
-        return _LoadingView(
+        return const _LoadingView(
           message: 'Registering tag...',
-          subtitle: 'Table ${scanState.selectedTableId}',
+          subtitle: 'Saving to backend',
+        );
+
+      case ScanStatus.claiming:
+        return const _LoadingView(
+          message: 'Claiming DNA tag...',
+          subtitle: 'Assigning from inventory',
         );
 
       case ScanStatus.writing:
         return _LoadingView(
-          message: 'Writing URL to tag...',
+          message: scanState.pendingUrl != null
+              ? 'Tap tag to write URL...'
+              : 'Writing URL to tag...',
           subtitle: 'Keep phone on tag',
+          showProgress: true,
+        );
+
+      case ScanStatus.erasing:
+        return _LoadingView(
+          message: 'Tap tag to erase...',
+          subtitle: 'This will remove all data from the tag',
           showProgress: true,
         );
 
       case ScanStatus.success:
         return _SuccessView(
-          tag: scanState.registeredTag!,
+          tag: scanState.registeredTag,
+          uid: scanState.detectedUid,
+          message: scanState.errorMessage,
           onScanNext: () {
             ref.invalidate(tablesProvider(locationId));
             ref.read(scanStateProvider.notifier).resetForNextTag();
@@ -203,6 +221,7 @@ class _TagDetectedView extends StatelessWidget {
   final List<SSPTable> tables;
   final String? selectedTableId;
   final bool writeUrlEnabled;
+  final bool isDnaTag;
   final ValueChanged<String> onTableSelected;
   final ValueChanged<bool> onWriteUrlToggled;
   final VoidCallback onRegister;
@@ -214,6 +233,7 @@ class _TagDetectedView extends StatelessWidget {
     required this.tables,
     required this.selectedTableId,
     required this.writeUrlEnabled,
+    required this.isDnaTag,
     required this.onTableSelected,
     required this.onWriteUrlToggled,
     required this.onRegister,
@@ -223,18 +243,26 @@ class _TagDetectedView extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    // Use different colors for DNA vs static tags
+    final headerColor = isDnaTag
+        ? Theme.of(context).colorScheme.tertiaryContainer
+        : Theme.of(context).colorScheme.primaryContainer;
+    final headerTextColor = isDnaTag
+        ? Theme.of(context).colorScheme.onTertiaryContainer
+        : Theme.of(context).colorScheme.onPrimaryContainer;
+
     return Column(
       children: [
         // Tag Info Header
         Container(
           width: double.infinity,
           padding: const EdgeInsets.all(16),
-          color: Theme.of(context).colorScheme.primaryContainer,
+          color: headerColor,
           child: Row(
             children: [
               Icon(
-                Icons.nfc,
-                color: Theme.of(context).colorScheme.onPrimaryContainer,
+                isDnaTag ? Icons.verified_user : Icons.nfc,
+                color: headerTextColor,
               ),
               const SizedBox(width: 12),
               Expanded(
@@ -242,19 +270,39 @@ class _TagDetectedView extends StatelessWidget {
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     Text(
-                      'Tag Detected',
+                      isDnaTag ? 'DNA Tag Detected' : 'Tag Detected',
                       style: Theme.of(context).textTheme.titleSmall?.copyWith(
                             fontWeight: FontWeight.bold,
-                            color: Theme.of(context).colorScheme.onPrimaryContainer,
+                            color: headerTextColor,
                           ),
                     ),
                     Text(
                       'UID: $uid',
                       style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                            color: Theme.of(context).colorScheme.onPrimaryContainer,
+                            color: headerTextColor,
                             fontFamily: 'monospace',
                           ),
                     ),
+                    // DNA tag badge
+                    if (isDnaTag) ...[
+                      const SizedBox(height: 4),
+                      Container(
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 8,
+                          vertical: 2,
+                        ),
+                        decoration: BoxDecoration(
+                          color: Theme.of(context).colorScheme.tertiary,
+                          borderRadius: BorderRadius.circular(4),
+                        ),
+                        child: Text(
+                          'NTAG 424 DNA - Pre-encoded',
+                          style: Theme.of(context).textTheme.labelSmall?.copyWith(
+                                color: Theme.of(context).colorScheme.onTertiary,
+                              ),
+                        ),
+                      ),
+                    ],
                   ],
                 ),
               ),
@@ -288,18 +336,32 @@ class _TagDetectedView extends StatelessWidget {
           child: Column(
             mainAxisSize: MainAxisSize.min,
             children: [
-              // Write URL Toggle
-              CheckboxListTile(
-                value: writeUrlEnabled,
-                onChanged: (value) => onWriteUrlToggled(value ?? true),
-                title: const Text('Write URL to tag'),
-                controlAffinity: ListTileControlAffinity.leading,
-                contentPadding: EdgeInsets.zero,
-              ),
+              // Write URL Toggle - only show for static tags
+              if (!isDnaTag)
+                CheckboxListTile(
+                  value: writeUrlEnabled,
+                  onChanged: (value) => onWriteUrlToggled(value ?? true),
+                  title: const Text('Write URL to tag'),
+                  controlAffinity: ListTileControlAffinity.leading,
+                  contentPadding: EdgeInsets.zero,
+                ),
+
+              // Info text for DNA tags
+              if (isDnaTag)
+                Padding(
+                  padding: const EdgeInsets.only(bottom: 8),
+                  child: Text(
+                    'This tag is pre-encoded and will be claimed from inventory.',
+                    style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                          color: Theme.of(context).colorScheme.onSurfaceVariant,
+                        ),
+                    textAlign: TextAlign.center,
+                  ),
+                ),
 
               const SizedBox(height: 8),
 
-              // Register Button
+              // Register/Claim Button
               SizedBox(
                 width: double.infinity,
                 height: 56,
@@ -307,7 +369,7 @@ class _TagDetectedView extends StatelessWidget {
                   onPressed: selectedTableId != null ? onRegister : null,
                   child: Text(
                     selectedTableId != null
-                        ? 'Register to Selected Table'
+                        ? (isDnaTag ? 'Claim Tag for Selected Table' : 'Register to Selected Table')
                         : 'Select a Table',
                   ),
                 ),
@@ -375,17 +437,25 @@ class _LoadingView extends StatelessWidget {
 
 class _SuccessView extends StatelessWidget {
   final dynamic tag;
+  final String? uid;
+  final String? message;
   final VoidCallback onScanNext;
   final VoidCallback onViewTables;
 
   const _SuccessView({
-    required this.tag,
+    this.tag,
+    this.uid,
+    this.message,
     required this.onScanNext,
     required this.onViewTables,
   });
 
   @override
   Widget build(BuildContext context) {
+    // Determine title based on whether we have a registered tag or just a success message
+    final title = tag != null ? 'Tag Registered!' : (message ?? 'Success!');
+    final displayUid = tag?.uid ?? uid;
+
     return Padding(
       padding: const EdgeInsets.all(24),
       child: Column(
@@ -399,37 +469,40 @@ class _SuccessView extends StatelessWidget {
           ),
           const SizedBox(height: 24),
           Text(
-            'Tag Registered!',
+            title,
             style: Theme.of(context).textTheme.headlineSmall?.copyWith(
                   fontWeight: FontWeight.bold,
                 ),
+            textAlign: TextAlign.center,
           ),
           const SizedBox(height: 24),
-          Card(
-            child: Padding(
-              padding: const EdgeInsets.all(16),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    'UID: ${tag.uid}',
-                    style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                          fontFamily: 'monospace',
-                        ),
-                  ),
-                  if (tag.writtenUrl != null) ...[
-                    const SizedBox(height: 8),
-                    Text(
-                      'URL: ${tag.writtenUrl}',
-                      style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                            color: Theme.of(context).colorScheme.onSurfaceVariant,
-                          ),
-                    ),
+          if (displayUid != null || tag?.writtenUrl != null)
+            Card(
+              child: Padding(
+                padding: const EdgeInsets.all(16),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    if (displayUid != null)
+                      Text(
+                        'UID: $displayUid',
+                        style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                              fontFamily: 'monospace',
+                            ),
+                      ),
+                    if (tag?.writtenUrl != null) ...[
+                      const SizedBox(height: 8),
+                      Text(
+                        'URL: ${tag.writtenUrl}',
+                        style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                              color: Theme.of(context).colorScheme.onSurfaceVariant,
+                            ),
+                      ),
+                    ],
                   ],
-                ],
+                ),
               ),
             ),
-          ),
           const Spacer(),
           SizedBox(
             width: double.infinity,

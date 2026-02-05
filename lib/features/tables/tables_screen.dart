@@ -177,7 +177,7 @@ class _TablesScreenState extends ConsumerState<TablesScreen> {
                     final table = filteredTables[index];
                     if (table.hasActiveNfc) {
                       return Dismissible(
-                        key: Key('table_${table.id}'),
+                        key: Key('table_${table.id}_${table.nfcTag?.id ?? "no_tag"}'),
                         direction: DismissDirection.endToStart,
                         background: Container(
                           alignment: Alignment.centerRight,
@@ -200,10 +200,15 @@ class _TablesScreenState extends ConsumerState<TablesScreen> {
                           ),
                         ),
                         confirmDismiss: (direction) async {
-                          return await _showDeleteConfirmation(context, table);
-                        },
-                        onDismissed: (direction) async {
-                          await _deleteNfcTag(table);
+                          // Show confirmation dialog
+                          final confirmed = await _showDeleteConfirmation(context, table);
+                          if (confirmed) {
+                            // Perform the delete - this will refresh the list
+                            await _deleteNfcTag(table);
+                          }
+                          // Always return false - the list refresh will handle removing the item
+                          // This prevents the "dismissed Dismissible still in tree" error
+                          return false;
                         },
                         child: _TableCard(table: table),
                       );
