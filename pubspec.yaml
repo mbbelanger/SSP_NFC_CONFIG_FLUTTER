@@ -29,6 +29,7 @@ dependencies:
   # UI
   flutter_svg: ^2.0.9
   shimmer: ^3.0.0
+  pin_code_fields: ^8.0.1
 
   # Utilities
   intl: ^0.18.1
@@ -40,6 +41,14 @@ dev_dependencies:
   flutter_lints: ^3.0.1
   mockito: ^5.4.4
   build_runner: ^2.4.8
+  flutter_launcher_icons: ^0.13.1
+
+flutter_launcher_icons:
+  android: true
+  ios: true
+  image_path: "assets/images/app_icon_1024.png"
+  adaptive_icon_background: "#FF8200"
+  adaptive_icon_foreground: "assets/images/app_icon_foreground.png"
 
 flutter:
   uses-material-design: true

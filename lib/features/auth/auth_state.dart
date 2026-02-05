@@ -17,6 +17,7 @@ class AuthState {
   final String? token;
   final String? challengeToken;
   final String? selectionToken;
+  final String? email; // Email used for 2FA display
   final List<Organization>? organizations;
   final String? errorMessage;
 
@@ -26,6 +27,7 @@ class AuthState {
     this.token,
     this.challengeToken,
     this.selectionToken,
+    this.email,
     this.organizations,
     this.errorMessage,
   });
@@ -39,6 +41,7 @@ class AuthState {
     String? token,
     String? challengeToken,
     String? selectionToken,
+    String? email,
     List<Organization>? organizations,
     String? errorMessage,
   }) {
@@ -48,6 +51,7 @@ class AuthState {
       token: token ?? this.token,
       challengeToken: challengeToken ?? this.challengeToken,
       selectionToken: selectionToken ?? this.selectionToken,
+      email: email ?? this.email,
       organizations: organizations ?? this.organizations,
       errorMessage: errorMessage ?? this.errorMessage,
     );

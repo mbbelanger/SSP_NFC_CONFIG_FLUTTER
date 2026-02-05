@@ -38,6 +38,29 @@ type Query {
   ): NFCResolutionResult!
 
   """
+  [PUBLIC] Resolve NTAG 424 DNA tag with cryptographic signature verification.
+  Entry point for guest taps on DNA-enabled NFC tags.
+  URL format: https://splt.ca/t?uid=xxxxxxxxxxxxxx&ctr=xxxxxx&mac=xxxxxxxxxxxxxxxx
+  
+  This endpoint:
+  1. Validates the CMAC signature using the tag's SDM key
+  2. Verifies the counter is higher than last seen (anti-replay)
+  3. Resolves the tag to its registered table and active order
+  
+  Rate limited to prevent abuse (30/min per IP, 100/min per UID).
+  """
+  resolveNFCTagDNA(
+    "Tag UID as 14-character hex string (e.g., '040F67BA851B90')."
+    uid: String!
+
+    "Read counter as 6-character hex string (e.g., '000001')."
+    ctr: String!
+
+    "CMAC signature as 16-character hex string."
+    mac: String!
+  ): NFCDNAResolutionResult!
+
+  """
   Get all organization memberships for the current user.
   Requires the user to be logged into an organization.
   """
@@ -425,6 +448,13 @@ type Query {
   Returns null if no active tag is assigned.
   """
   getNFCTagByTable(tableId: ID!): NFCTag
+
+  """
+  Get all unassigned NFC tags from inventory.
+  Returns tags that have been imported but not yet claimed by an organization.
+  Admin-only query for managing tag inventory.
+  """
+  nfcTagInventory: [NFCTagInventory!]!
 
   "Retrieve a specific menu by ID."
   sspMenu(id: ID!): SSPMenu
@@ -2243,6 +2273,35 @@ type Mutation {
   Removes the tag from active use while preserving scan history.
   """
   deleteNFCTag(id: ID!): Boolean!
+
+  """
+  Scan and verify an NTAG 424 DNA tag from the Flutter app.
+  Used by staff to verify a DNA tag before associating it with a table.
+  
+  The staff member scans the tag URL (e.g., /t?uid=...&ctr=...&mac=...)
+  and this mutation verifies the MAC signature using the location's SDM key.
+  
+  Returns tag info if valid, or creates a new unassociated tag record.
+  """
+  scanNFCTagDNA(input: ScanNFCTagDNAInput!): ScanNFCTagDNAResult!
+
+  """
+  Associate a verified DNA tag with a table.
+  The tag must have been previously scanned and verified via scanNFCTagDNA.
+  """
+  associateNFCTagDNA(input: AssociateNFCTagDNAInput!): NFCTag!
+
+  """
+  Claim an NFC tag from inventory and assign it to a table.
+  The tag must exist in the nfc_tag_inventory table (imported via GoToTags CSV).
+  The table must belong to the user's organization.
+  
+  This mutation:
+  1. Looks up the tag UID in the inventory
+  2. Creates an NFCTag record with the user's organization
+  3. Soft-deletes the inventory record (preserving purchase history)
+  """
+  claimNFCTag(input: ClaimNFCTagInput!): NFCTag!
 
   """
   Create a visual layout for restaurant location.
@@ -5572,6 +5631,13 @@ input SSPLocationInput {
   Determines guest experience for self-seating vs full-service restaurants.
   """
   nfcNoOrderBehavior: NFCNoOrderBehavior
+
+  """
+  SDM File Read Key (Key 2) for NTAG 424 DNA tag verification.
+  32-character hexadecimal string (e.g., 'DE43FCE728229976A8B7A87549D6DD25').
+  All DNA tags for this location will use this key for signature verification.
+  """
+  nfcSdmKey: String
 
   """
   Whether this location accepts online orders (takeout, delivery).
@@ -9395,21 +9461,46 @@ enum NFCResolutionStatus {
   "Organization not found for given slug."
   ORG_NOT_FOUND
 
+  "DNA tag UID not found in database."
+  TAG_NOT_FOUND
+
+  "DNA tag MAC signature verification failed."
+  INVALID_MAC
+
+  "DNA tag counter indicates replay attack (counter not higher than last seen)."
+  REPLAY_ATTACK
+
   "General error during resolution."
   ERROR
 }
 
+"Type of NFC tag technology used."
+enum NFCTagType {
+  "Legacy static URL tag (organization/location/table encoded in URL path)."
+  STATIC
+
+  "NTAG 424 DNA tag with Secure Dynamic Messaging (UID/counter/MAC in URL)."
+  DNA
+}
+
 """
 Represents an NFC tag registered to a table.
-NFC tags are physically attached to tables and contain a static URL
+NFC tags are physically attached to tables and contain a URL
 that resolves to the active order for that table.
+
+Supports two tag types:
+- STATIC: Legacy tags with org/location/table in URL path
+- DNA: NTAG 424 DNA tags with cryptographic signatures (uid/counter/mac in URL)
 """
 type NFCTag {
   "Unique identifier of the NFC tag."
   id: ID!
 
-  "Hardware NFC serial number (e.g., '04:AB:CD:12:34:56:80')."
+  "Hardware NFC serial number (e.g., '04:AB:CD:12:34:56:80' or '040F67BA851B90' for DNA)."
   uid: String!
+
+  "Type of NFC tag: STATIC (legacy) or DNA (NTAG 424 DNA with SDM)."
+  tagType: NFCTagType!
 
   "The table this NFC tag is assigned to."
   table: SSPTable!
@@ -9437,6 +9528,9 @@ type NFCTag {
 
   "Last time the tag was scanned."
   lastScannedAt: DateTime
+
+  "Last verified read counter for DNA tags (for anti-replay protection)."
+  lastReadCounter: Int
 
   "When the tag record was created."
   createdAt: DateTime!
@@ -9470,6 +9564,58 @@ type NFCTagScan {
 
   "Client user agent string."
   userAgent: String
+}
+
+"""
+Result of an NFC 424 DNA tag resolution attempt.
+Returned by the public resolveNFCTagDNA query.
+This endpoint validates the cryptographic signature from NTAG 424 DNA tags.
+"""
+type NFCDNAResolutionResult {
+  "Whether the resolution was successful."
+  success: Boolean!
+
+  "Resolution status code for logging and frontend handling."
+  status: NFCResolutionStatus!
+
+  "Whether an active order was found for the table."
+  hasActiveOrder: Boolean!
+
+  """
+  The unique order ID for guest authentication.
+  Use this with the AuthenticateGuestOrder mutation.
+  """
+  uniqueOrderId: String
+
+  "The database ID of the resolved order."
+  orderId: ID
+
+  "The database ID of the table."
+  tableId: ID
+
+  "Display name of the table (e.g., 'Patio A1')."
+  tableName: String
+
+  "The table's local_id."
+  tableLocalId: Int
+
+  "The database ID of the location."
+  locationId: ID
+
+  "Display name of the location."
+  locationName: String
+
+  "Organization UUID."
+  organizationUuid: String
+
+  "Organization name."
+  organizationName: String
+
+  "What the frontend should do if no active order exists."
+  nfcNoOrderBehavior: NFCNoOrderBehavior
+
+  "Human-readable message for display to guests."
+  message: String
 }
 
 """
@@ -9516,11 +9662,21 @@ type NFCResolutionResult {
 
 "Input for registering a new NFC tag to a table."
 input RegisterNFCTagInput {
-  "Hardware NFC serial number (e.g., '04:AB:CD:12:34:56:80')."
+  "Hardware NFC serial number (e.g., '04:AB:CD:12:34:56:80' for static, '040F67BA851B90' for DNA)."
   uid: String!
 
   "The ID of the table to assign the tag to."
   tableId: ID!
+
+  "Type of NFC tag: STATIC (legacy, default) or DNA (NTAG 424 DNA with SDM)."
+  tagType: NFCTagType
+
+  """
+  SDM File Read Key (Key 2) as 32-character hex string.
+  Required for DNA tags, ignored for STATIC tags.
+  This key is used to verify the CMAC signature from the tag.
+  """
+  sdmKey: String
 
   "Optional friendly name for the tag."
   label: String
@@ -9545,6 +9701,136 @@ input ReassignNFCTagInput {
 
   "The ID of the new table to assign the tag to."
   newTableId: ID!
+}
+
+"""
+Input for scanning and verifying an NTAG 424 DNA tag from the Flutter app.
+Staff scans the tag URL parameters to verify the tag before associating with a table.
+"""
+input ScanNFCTagDNAInput {
+  "Tag UID as 14-character hex string (e.g., '040F67BA851B90')."
+  uid: String!
+
+  "Read counter as 6-character hex string (e.g., '000006')."
+  ctr: String!
+
+  "CMAC signature as 16-character hex string."
+  mac: String!
+
+  """
+  Location ID where this tag will be used.
+  Required to look up the location's SDM key for verification.
+  """
+  locationId: ID!
+}
+
+"Result of scanning and verifying an NTAG 424 DNA tag."
+type ScanNFCTagDNAResult {
+  "Whether the tag verification was successful."
+  success: Boolean!
+
+  "Error message if verification failed."
+  message: String
+
+  "The verified tag UID (normalized to uppercase, no separators)."
+  uid: String
+
+  "The read counter value."
+  counter: Int
+
+  "Whether this tag is already registered in the system."
+  isRegistered: Boolean
+
+  "If registered, the existing tag record."
+  existingTag: NFCTag
+
+  "If registered, whether it's already associated with a table."
+  hasTableAssociation: Boolean
+}
+
+"Input for associating a verified DNA tag with a table."
+input AssociateNFCTagDNAInput {
+  "Tag UID as returned from scanNFCTagDNA."
+  uid: String!
+
+  "The ID of the table to assign the tag to."
+  tableId: ID!
+
+  "Optional friendly name for the tag."
+  label: String
+
+  "Optional admin notes about the tag."
+  notes: String
+}
+
+"""
+Input for claiming an NFC tag from inventory and assigning it to a table.
+The tag must exist in the inventory and the table must belong to the user's organization.
+"""
+input ClaimNFCTagInput {
+  "Tag UID from scanned tag (14 hex chars for DNA, e.g., '040F67BA851B90')."
+  uid: String!
+
+  "The ID of the table to assign the tag to."
+  tableId: ID!
+
+  "Optional friendly name for the tag."
+  label: String
+}
+
+"""
+Represents an unassigned NFC tag in inventory.
+Tags are imported from GoToTags CSV and stored here until claimed
+by an organization and assigned to a table.
+"""
+type NFCTagInventory {
+  "Unique identifier of the inventory tag."
+  id: ID!
+
+  "Hardware NFC serial number (e.g., '040F67BA851B90')."
+  uid: String!
+
+  "Type of NFC tag: STATIC or DNA."
+  tagType: String!
+
+  "Chip type (e.g., 'NTAG424')."
+  chipType: String
+
+  "URL written to the NFC tag."
+  writtenUrl: String
+
+  "Whether the tag is write-locked."
+  isLocked: Boolean!
+
+  "Import notes."
+  notes: String
+
+  "When the tag was imported."
+  importedAt: DateTime!
+
+  "Supplier name (e.g., 'GoToTags')."
+  supplier: String
+
+  "Tag model (e.g., 'NTAG424 DNA TT')."
+  model: String
+
+  "Tag color (e.g., 'White')."
+  color: String
+
+  "Tag size (e.g., '30mm')."
+  size: String
+
+  "Unit cost."
+  cost: Float
+
+  "Purchase order reference."
+  orderNumber: String
+
+  "When the tag record was created."
+  createdAt: DateTime!
+
+  "When the tag record was last updated."
+  updatedAt: DateTime!
 }
 
 """

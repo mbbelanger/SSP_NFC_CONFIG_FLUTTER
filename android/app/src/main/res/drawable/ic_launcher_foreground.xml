@@ -4,12 +4,48 @@
     android:height="108dp"
     android:viewportWidth="108"
     android:viewportHeight="108">
-    <group android:scaleX="0.5"
-        android:scaleY="0.5"
-        android:translateX="27"
-        android:translateY="27">
-        <path
-            android:fillColor="#FFFFFF"
-            android:pathData="M54,27C38.536,27 26,39.536 26,55C26,70.464 38.536,83 54,83C69.464,83 82,70.464 82,55C82,39.536 69.464,27 54,27ZM54,35C65.046,35 74,43.954 74,55C74,66.046 65.046,75 54,75C42.954,75 34,66.046 34,55C34,43.954 42.954,35 54,35ZM54,43C47.373,43 42,48.373 42,55C42,61.627 47.373,67 54,67C60.627,67 66,61.627 66,55C66,48.373 60.627,43 54,43ZM54,51C56.209,51 58,52.791 58,55C58,57.209 56.209,59 54,59C51.791,59 50,57.209 50,55C50,52.791 51.791,51 54,51Z"/>
-    </group>
+
+    <!-- NFC Signal Arcs -->
+    <!-- Outer arc -->
+    <path
+        android:pathData="M34,38 A20,20 0 0,1 74,38"
+        android:strokeWidth="4"
+        android:strokeColor="#FFFFFF"
+        android:strokeLineCap="round"
+        android:fillColor="#00000000"/>
+    <!-- Middle arc -->
+    <path
+        android:pathData="M40,38 A14,14 0 0,1 68,38"
+        android:strokeWidth="4"
+        android:strokeColor="#FFFFFF"
+        android:strokeLineCap="round"
+        android:fillColor="#00000000"/>
+    <!-- Inner arc -->
+    <path
+        android:pathData="M46,38 A8,8 0 0,1 62,38"
+        android:strokeWidth="4"
+        android:strokeColor="#FFFFFF"
+        android:strokeLineCap="round"
+        android:fillColor="#00000000"/>
+    <!-- Center dot -->
+    <path
+        android:pathData="M54,38 m-4,0 a4,4 0 1,1 8,0 a4,4 0 1,1 -8,0"
+        android:fillColor="#FFFFFF"/>
+
+    <!-- SSP Letters - Arial Bold style -->
+    <!-- Letter S (first) - Arial style with smooth curves -->
+    <path
+        android:fillColor="#FFFFFF"
+        android:pathData="M28,58 C28,55.5 30,54 33,54 L39,54 C42,54 44,55.5 44,58 L44,59 L40,59 L40,58.5 C40,57.5 39.5,57 38.5,57 L33.5,57 C32.5,57 32,57.5 32,58.5 C32,59.5 32.5,60 33.5,60 L38.5,60 C41.5,60 44,61.5 44,64.5 L44,66 C44,68.5 42,70 39,70 L33,70 C30,70 28,68.5 28,66 L28,65 L32,65 L32,65.5 C32,66.5 32.5,67 33.5,67 L38.5,67 C39.5,67 40,66.5 40,65.5 C40,64.5 39.5,64 38.5,64 L33.5,64 C30.5,64 28,62.5 28,59.5 Z"/>
+
+    <!-- Letter S (second) - Arial style -->
+    <path
+        android:fillColor="#FFFFFF"
+        android:pathData="M46,58 C46,55.5 48,54 51,54 L57,54 C60,54 62,55.5 62,58 L62,59 L58,59 L58,58.5 C58,57.5 57.5,57 56.5,57 L51.5,57 C50.5,57 50,57.5 50,58.5 C50,59.5 50.5,60 51.5,60 L56.5,60 C59.5,60 62,61.5 62,64.5 L62,66 C62,68.5 60,70 57,70 L51,70 C48,70 46,68.5 46,66 L46,65 L50,65 L50,65.5 C50,66.5 50.5,67 51.5,67 L56.5,67 C57.5,67 58,66.5 58,65.5 C58,64.5 57.5,64 56.5,64 L51.5,64 C48.5,64 46,62.5 46,59.5 Z"/>
+
+    <!-- Letter P - Arial style -->
+    <path
+        android:fillColor="#FFFFFF"
+        android:pathData="M64,54 L76,54 C79,54 80,55.5 80,58 L80,60 C80,62.5 79,64 76,64 L68,64 L68,70 L64,70 Z M68,57 L68,61 L75,61 C76,61 76,60.5 76,60 L76,58 C76,57.5 76,57 75,57 Z"/>
+
 </vector>

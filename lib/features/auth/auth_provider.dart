@@ -5,6 +5,7 @@ import 'package:graphql_flutter/graphql_flutter.dart';
 
 import '../../core/api/graphql_client.dart';
 import '../../core/api/graphql_mutations.dart';
+import '../../core/api/graphql_queries.dart';
 import '../../core/storage/secure_storage.dart';
 import '../../models/user.dart';
 import '../../models/organization.dart';
@@ -32,7 +33,7 @@ class AuthNotifier extends StateNotifier<AuthState> {
           final user = User.fromJson(jsonDecode(userData));
           state = AuthState.authenticated(user: user, token: token);
         } catch (e) {
-          await SecureStorage.clearAll();
+          await SecureStorage.clearAuthData();
           state = AuthState.unauthenticated();
         }
       } else {
@@ -47,12 +48,16 @@ class AuthNotifier extends StateNotifier<AuthState> {
     state = AuthState.loading();
 
     try {
+      // Get device token for "remember this device" feature
+      final deviceToken = await SecureStorage.getDeviceToken();
+
       final result = await _client.mutate(
         MutationOptions(
           document: gql(GraphQLMutations.loginSSPUser),
           variables: {
             'email': email,
             'password': password,
+            'device_token': deviceToken,
           },
         ),
       );
@@ -75,6 +80,7 @@ class AuthNotifier extends StateNotifier<AuthState> {
         state = state.copyWith(
           status: AuthStatus.requiresTwoFactor,
           challengeToken: data['challenge_token'],
+          email: email,
         );
         return;
       }
@@ -99,7 +105,7 @@ class AuthNotifier extends StateNotifier<AuthState> {
     }
   }
 
-  Future<void> verifyTwoFactor(String code) async {
+  Future<void> verifyTwoFactor(String code, {bool rememberDevice = false}) async {
     if (state.challengeToken == null) {
       state = AuthState.error('Invalid state. Please try logging in again.');
       return;
@@ -114,6 +120,8 @@ class AuthNotifier extends StateNotifier<AuthState> {
           variables: {
             'challengeToken': state.challengeToken,
             'code': code,
+            'recoveryCode': null,
+            'rememberDevice': rememberDevice,
           },
         ),
       );
@@ -131,6 +139,66 @@ class AuthNotifier extends StateNotifier<AuthState> {
       final data = result.data?['verifyTwoFactorAuthentication'];
       if (data == null) {
         state = AuthState.error('Invalid response from server');
+        return;
+      }
+
+      // Check if verification was successful
+      if (data['success'] != true) {
+        state = state.copyWith(
+          status: AuthStatus.requiresTwoFactor,
+          errorMessage: data['status'] ?? 'Verification failed',
+        );
+        return;
+      }
+
+      // Save device token if remember device was requested
+      if (rememberDevice && data['device_token'] != null) {
+        await SecureStorage.saveDeviceToken(data['device_token']);
+      }
+
+      await _handleLoginSuccess(data);
+    } catch (e) {
+      state = AuthState.error('Network error. Please check your connection.');
+    }
+  }
+
+  Future<void> verifyWithRecoveryCode(String recoveryCode) async {
+    if (state.challengeToken == null) {
+      state = AuthState.error('Invalid state. Please try logging in again.');
+      return;
+    }
+
+    state = state.copyWith(status: AuthStatus.loading);
+
+    try {
+      final result = await _client.mutate(
+        MutationOptions(
+          document: gql(GraphQLMutations.verifyTwoFactorAuthentication),
+          variables: {
+            'challengeToken': state.challengeToken,
+            'code': null,
+            'recoveryCode': recoveryCode,
+            'rememberDevice': false,
+          },
+        ),
+      );
+
+      if (result.hasException) {
+        final message = result.exception?.graphqlErrors.firstOrNull?.message ??
+            'Invalid recovery code.';
+        state = state.copyWith(
+          status: AuthStatus.requiresTwoFactor,
+          errorMessage: message,
+        );
+        return;
+      }
+
+      final data = result.data?['verifyTwoFactorAuthentication'];
+      if (data == null || data['success'] != true) {
+        state = state.copyWith(
+          status: AuthStatus.requiresTwoFactor,
+          errorMessage: 'Verification failed',
+        );
         return;
       }
 
@@ -182,18 +250,57 @@ class AuthNotifier extends StateNotifier<AuthState> {
   }
 
   Future<void> _handleLoginSuccess(Map<String, dynamic> data) async {
-    final token = data['token'] as String;
-    final userData = data['user'] as Map<String, dynamic>;
-    final user = User.fromJson(userData);
+    final token = data['token'] as String?;
+    if (token == null) {
+      state = AuthState.error('No token received');
+      return;
+    }
 
+    // Save token first
     await SecureStorage.saveToken(token);
-    await SecureStorage.saveUserData(jsonEncode(userData));
 
-    state = AuthState.authenticated(user: user, token: token);
+    // Fetch current user with full details
+    final user = await _fetchCurrentUser();
+    if (user != null) {
+      await SecureStorage.saveUserData(jsonEncode(user.toJson()));
+      state = AuthState.authenticated(user: user, token: token);
+    } else {
+      // Fallback to user data from login response
+      final userData = data['user'] as Map<String, dynamic>?;
+      if (userData != null) {
+        final user = User.fromJson(userData);
+        await SecureStorage.saveUserData(jsonEncode(userData));
+        state = AuthState.authenticated(user: user, token: token);
+      } else {
+        state = AuthState.error('Failed to get user data');
+      }
+    }
+  }
+
+  Future<User?> _fetchCurrentUser() async {
+    try {
+      final result = await _client.query(
+        QueryOptions(
+          document: gql(GraphQLQueries.meQuery),
+          fetchPolicy: FetchPolicy.networkOnly,
+        ),
+      );
+
+      if (result.hasException) {
+        return null;
+      }
+
+      final data = result.data?['me'];
+      if (data == null) return null;
+
+      return User.fromJson(data);
+    } catch (e) {
+      return null;
+    }
   }
 
   Future<void> logout() async {
-    await SecureStorage.clearAll();
+    await SecureStorage.clearAuthData();
     state = AuthState.unauthenticated();
   }
 

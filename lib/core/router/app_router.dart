@@ -3,7 +3,9 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
 import '../../features/auth/login_screen.dart';
+import '../../features/auth/two_factor_screen.dart';
 import '../../features/auth/auth_provider.dart';
+import '../../features/auth/auth_state.dart';
 import '../../features/location/location_select_screen.dart';
 import '../../features/scan/scan_screen.dart';
 import '../../features/tables/tables_screen.dart';
@@ -18,13 +20,25 @@ final routerProvider = Provider<GoRouter>((ref) {
     redirect: (context, state) {
       final isLoggedIn = authState.isAuthenticated;
       final isLoggingIn = state.matchedLocation == '/login';
+      final isOnTwoFactor = state.matchedLocation == '/two-factor';
+      final isOnOrgSelection = state.matchedLocation == '/select-organization';
 
-      if (!isLoggedIn && !isLoggingIn) {
+      // Allow 2FA and org selection flows
+      if (authState.status == AuthStatus.requiresTwoFactor && !isOnTwoFactor) {
+        return '/two-factor';
+      }
+      if (authState.status == AuthStatus.requiresOrgSelection && !isOnOrgSelection) {
+        return '/select-organization';
+      }
+
+      // Redirect to login if not authenticated
+      if (!isLoggedIn && !isLoggingIn && !isOnTwoFactor && !isOnOrgSelection) {
         return '/login';
       }
 
+      // Redirect to locations if already logged in and trying to access login
       if (isLoggedIn && isLoggingIn) {
-        return '/location';
+        return '/locations';
       }
 
       return null;
@@ -36,9 +50,19 @@ final routerProvider = Provider<GoRouter>((ref) {
         builder: (context, state) => const LoginScreen(),
       ),
       GoRoute(
-        path: '/location',
-        name: 'location',
+        path: '/two-factor',
+        name: 'two-factor',
+        builder: (context, state) => const TwoFactorScreen(),
+      ),
+      GoRoute(
+        path: '/locations',
+        name: 'locations',
         builder: (context, state) => const LocationSelectScreen(),
+      ),
+      // Legacy route alias
+      GoRoute(
+        path: '/location',
+        redirect: (context, state) => '/locations',
       ),
       GoRoute(
         path: '/scan/:locationId',
