@@ -1,0 +1,17 @@
+# Android Keystore Configuration
+# Copy this file to key.properties and fill in your values
+#
+# Generate keystore with:
+#   keytool -genkey -v -keystore ssp-nfc-release.jks \
+#     -keyalg RSA -keysize 2048 -validity 10000 -alias ssp-nfc
+#
+# CRITICAL: After generating, back up the keystore immediately to a secure
+# location outside the repo (cloud vault, encrypted USB, password manager).
+# If you lose the keystore, you cannot update the app on Google Play.
+#
+# Strongly recommend enrolling in Google Play App Signing during first upload.
+
+storePassword=YOUR_KEYSTORE_PASSWORD
+keyPassword=YOUR_KEY_PASSWORD
+keyAlias=ssp-nfc
+storeFile=PATH_TO_YOUR_KEYSTORE.jks

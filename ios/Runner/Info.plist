@@ -5,7 +5,7 @@
 	<key>CFBundleDevelopmentRegion</key>
 	<string>$(DEVELOPMENT_LANGUAGE)</string>
 	<key>CFBundleDisplayName</key>
-	<string>SSP NFC Config</string>
+	<string>SSP NFC Registration</string>
 	<key>CFBundleExecutable</key>
 	<string>$(EXECUTABLE_NAME)</string>
 	<key>CFBundleIdentifier</key>
@@ -13,7 +13,7 @@
 	<key>CFBundleInfoDictionaryVersion</key>
 	<string>6.0</string>
 	<key>CFBundleName</key>
-	<string>ssp_nfc_config</string>
+	<string>SSP NFC Registration</string>
 	<key>CFBundlePackageType</key>
 	<string>APPL</string>
 	<key>CFBundleShortVersionString</key>
@@ -48,7 +48,7 @@
 
 	<!-- NFC Configuration -->
 	<key>NFCReaderUsageDescription</key>
-	<string>This app uses NFC to read and write table identification tags for the restaurant system.</string>
+	<string>SSP NFC Registration uses NFC to read, register, and configure table tags for your restaurant.</string>
 
 	<!-- NFC Tag Reader Session Formats - iOS 13+ -->
 	<key>com.apple.developer.nfc.readersession.iso7816.select-identifiers</key>
@@ -58,9 +58,6 @@
 
 	<!-- Enable background NFC reading - iOS 12+ -->
 	<key>com.apple.developer.nfc.readersession.felica.systemcodes</key>
-	<array/>
-
-	<key>com.apple.developer.nfc.readersession.iso7816.select-identifiers</key>
 	<array/>
 </dict>
 </plist>

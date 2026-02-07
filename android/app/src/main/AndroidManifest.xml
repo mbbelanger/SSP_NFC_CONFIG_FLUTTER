@@ -12,7 +12,7 @@
     <uses-permission android:name="android.permission.INTERNET" />
 
     <application
-        android:label="SSP NFC Config"
+        android:label="SSP NFC Registration"
         android:name="${applicationName}"
         android:icon="@mipmap/ic_launcher">
 
