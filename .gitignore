@@ -57,6 +57,13 @@ app.*.map.json
 .env.local
 .env.*.local
 
+# Signing
+**/android/key.properties
+*.jks
+*.keystore
+*.p12
+*.mobileprovision
+
 # Android generated plugin registrant
 **/android/app/src/main/java/io/flutter/plugins/GeneratedPluginRegistrant.java
 

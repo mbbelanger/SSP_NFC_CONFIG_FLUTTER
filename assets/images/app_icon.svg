@@ -1,45 +1,80 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512">
-  <!-- Background with SSP Orange gradient -->
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1024 1024">
   <defs>
-    <linearGradient id="bg-gradient" x1="0%" y1="0%" x2="100%" y2="100%">
-      <stop offset="0%" style="stop-color:#FF8200;stop-opacity:1" />
-      <stop offset="100%" style="stop-color:#E65100;stop-opacity:1" />
+    <!-- SSP Orange gradient background -->
+    <linearGradient id="bgGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" style="stop-color:#FF9500"/>
+      <stop offset="100%" style="stop-color:#FF7200"/>
     </linearGradient>
+
+    <!-- Subtle shadow -->
+    <filter id="shadow" x="-10%" y="-10%" width="120%" height="130%">
+      <feDropShadow dx="0" dy="6" stdDeviation="8" flood-color="#000" flood-opacity="0.2"/>
+    </filter>
   </defs>
 
-  <!-- Rounded rectangle background -->
-  <rect x="0" y="0" width="512" height="512" rx="100" ry="100" fill="url(#bg-gradient)"/>
+  <!-- Background -->
+  <rect x="0" y="0" width="1024" height="1024" rx="220" ry="220" fill="url(#bgGrad)"/>
 
-  <!-- NFC Signal Arcs (top portion) -->
-  <!-- Outer arc -->
-  <path d="M 156 200 A 100 100 0 0 1 356 200"
-        fill="none"
-        stroke="white"
-        stroke-width="24"
-        stroke-linecap="round"/>
+  <!-- Subtle barcode pattern at bottom (SSP POS heritage) -->
+  <g opacity="0.1">
+    <rect x="120" y="820" width="784" height="10" fill="#000"/>
+    <rect x="120" y="840" width="784" height="6" fill="#000"/>
+    <rect x="120" y="856" width="784" height="14" fill="#000"/>
+    <rect x="120" y="880" width="784" height="8" fill="#000"/>
+    <rect x="120" y="898" width="784" height="12" fill="#000"/>
+    <rect x="120" y="920" width="784" height="6" fill="#000"/>
+  </g>
 
-  <!-- Middle arc -->
-  <path d="M 186 200 A 70 70 0 0 1 326 200"
-        fill="none"
-        stroke="white"
-        stroke-width="22"
-        stroke-linecap="round"/>
+  <!-- Main content group -->
+  <g filter="url(#shadow)">
 
-  <!-- Inner arc -->
-  <path d="M 216 200 A 40 40 0 0 1 296 200"
-        fill="none"
-        stroke="white"
-        stroke-width="20"
-        stroke-linecap="round"/>
+    <!-- Restaurant table (top view) -->
+    <g transform="translate(512, 540)">
+      <!-- Table surface -->
+      <rect x="-200" y="-70" width="400" height="140" rx="24" ry="24" fill="#FFFFFF"/>
 
-  <!-- Center circle (NFC source) -->
-  <circle cx="256" cy="200" r="24" fill="white"/>
+      <!-- Table legs/shadow hint -->
+      <ellipse cx="0" cy="85" rx="170" ry="20" fill="#000" opacity="0.1"/>
 
-  <!-- SSP text (bottom portion) -->
-  <text x="256" y="380"
-        font-family="Arial Black, Arial, sans-serif"
-        font-size="120"
-        font-weight="900"
-        fill="white"
-        text-anchor="middle">SSP</text>
+      <!-- NFC Tag/Chip on table center -->
+      <g>
+        <!-- Chip outer -->
+        <rect x="-45" y="-45" width="90" height="90" rx="14" fill="#1A1A1A"/>
+        <!-- Chip inner ring -->
+        <rect x="-32" y="-32" width="64" height="64" rx="10" fill="#2D2D2D"/>
+        <!-- Chip contact pad (orange accent) -->
+        <rect x="-18" y="-18" width="36" height="36" rx="6" fill="#FF8200"/>
+        <!-- Contact lines -->
+        <rect x="-12" y="-2" width="24" height="4" rx="2" fill="#FFB366"/>
+        <rect x="-2" y="-12" width="4" height="24" rx="2" fill="#FFB366"/>
+      </g>
+    </g>
+
+    <!-- NFC Signal waves above table -->
+    <g transform="translate(512, 300)">
+      <!-- Wave 1 (closest to source) -->
+      <path d="M-70,60 A100,100 0 0,1 70,60"
+            fill="none" stroke="#FFFFFF" stroke-width="18" stroke-linecap="round"/>
+
+      <!-- Wave 2 -->
+      <path d="M-115,60 A150,150 0 0,1 115,60"
+            fill="none" stroke="#FFFFFF" stroke-width="16" stroke-linecap="round" opacity="0.85"/>
+
+      <!-- Wave 3 -->
+      <path d="M-160,60 A200,200 0 0,1 160,60"
+            fill="none" stroke="#FFFFFF" stroke-width="14" stroke-linecap="round" opacity="0.65"/>
+
+      <!-- Wave 4 (outermost) -->
+      <path d="M-205,60 A250,250 0 0,1 205,60"
+            fill="none" stroke="#FFFFFF" stroke-width="12" stroke-linecap="round" opacity="0.45"/>
+    </g>
+
+    <!-- SSP Badge at bottom -->
+    <g transform="translate(512, 760)">
+      <rect x="-110" y="-38" width="220" height="66" rx="33" fill="#1A1A1A"/>
+      <text x="0" y="14" font-family="Arial Black, Helvetica, sans-serif" font-size="48" font-weight="900"
+            fill="#FFFFFF" text-anchor="middle" letter-spacing="2">SSP</text>
+    </g>
+
+  </g>
 </svg>

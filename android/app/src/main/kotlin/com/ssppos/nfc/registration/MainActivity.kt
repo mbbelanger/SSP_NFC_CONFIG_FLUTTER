@@ -1,4 +1,4 @@
-package com.ssp.nfc_configurator
+package com.ssppos.nfc.registration
 
 import io.flutter.embedding.android.FlutterActivity
 
