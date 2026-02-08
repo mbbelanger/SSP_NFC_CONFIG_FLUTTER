@@ -132,4 +132,113 @@ class GraphQLQueries {
       }
     }
   ''';
+
+  // ============================================
+  // Two-Factor Authentication
+  // ============================================
+
+  static const String twoFactorStatus = '''
+    query TwoFactorStatus {
+      twoFactorStatus {
+        enabled
+        active_channel
+        masked_phone
+        confirmed_at
+        recovery_codes_remaining
+      }
+    }
+  ''';
+
+  static const String twoFactorAvailability = '''
+    query TwoFactorAvailability {
+      twoFactorAvailability {
+        totp_available
+        email_available
+        sms_available
+        phone_number
+        requires_phone_for_sms
+      }
+    }
+  ''';
+
+  // ============================================
+  // Trusted Devices
+  // ============================================
+
+  static const String trustedDevices = '''
+    query TrustedDevices {
+      trustedDevices {
+        devices {
+          id
+          device_name
+          last_used_at
+          expires_at
+          is_active
+          created_ip
+        }
+        count
+      }
+    }
+  ''';
+
+  // ============================================
+  // NFC Audit Logs (backlog item for admin screen)
+  // ============================================
+
+  static const String nfcOperationLogs = '''
+    query NfcOperationLogs(\$location_id: ID, \$limit: Int, \$offset: Int) {
+      nfcOperationLogs(location_id: \$location_id, limit: \$limit, offset: \$offset) {
+        logs {
+          id
+          operation
+          tag_uid
+          table_id
+          performed_by {
+            id
+            name
+          }
+          reauth_method
+          was_offline
+          device_name
+          created_at
+        }
+        total_count
+      }
+    }
+  ''';
+
+  // ============================================
+  // Legal Documents (public endpoints)
+  // ============================================
+
+  static const String legalDocument = '''
+    query LegalDocument(\$type: LegalDocumentType!, \$locale: String) {
+      legalDocument(type: \$type, locale: \$locale) {
+        id
+        slug
+        title
+        summary
+        documentType
+        version
+        locale
+        content
+        effectiveAt
+        publishedAt
+      }
+    }
+  ''';
+
+  static const String legalDocuments = '''
+    query LegalDocuments(\$locale: String) {
+      legalDocuments(locale: \$locale) {
+        id
+        slug
+        title
+        summary
+        documentType
+        version
+        effectiveAt
+      }
+    }
+  ''';
 }

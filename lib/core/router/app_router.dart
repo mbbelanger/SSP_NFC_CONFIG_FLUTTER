@@ -10,6 +10,13 @@ import '../../features/scan/scan_screen.dart';
 import '../../features/tables/tables_screen.dart';
 import '../../features/session/session_summary_screen.dart';
 import '../../features/settings/settings_screen.dart';
+import '../../features/settings/security_settings_screen.dart';
+import '../../features/settings/trusted_devices_screen.dart';
+import '../../features/settings/recovery_codes_screen.dart';
+import '../../features/nfc/pin_setup_screen.dart';
+import '../../features/nfc/lock_screen.dart';
+import '../../features/legal/legal_document_detail_screen.dart';
+import '../../models/legal_document.dart';
 
 final routerProvider = Provider<GoRouter>((ref) {
   final authState = ref.watch(authStateProvider);
@@ -103,6 +110,61 @@ final routerProvider = Provider<GoRouter>((ref) {
         path: '/settings',
         name: 'settings',
         builder: (context, state) => const SettingsScreen(),
+      ),
+      // Security settings routes
+      GoRoute(
+        path: '/settings/security',
+        name: 'security-settings',
+        builder: (context, state) => const SecuritySettingsScreen(),
+      ),
+      GoRoute(
+        path: '/settings/security/trusted-devices',
+        name: 'trusted-devices',
+        builder: (context, state) => const TrustedDevicesScreen(),
+      ),
+      GoRoute(
+        path: '/settings/security/recovery-codes',
+        name: 'recovery-codes',
+        builder: (context, state) => const RecoveryCodesScreen(),
+      ),
+      // PIN management routes
+      GoRoute(
+        path: '/pin-setup',
+        name: 'pin-setup',
+        builder: (context, state) {
+          final returnRoute = state.uri.queryParameters['returnRoute'];
+          return PinSetupScreen(returnRoute: returnRoute);
+        },
+      ),
+      GoRoute(
+        path: '/pin-change',
+        name: 'pin-change',
+        builder: (context, state) {
+          final returnRoute = state.uri.queryParameters['returnRoute'];
+          return PinSetupScreen(
+            isChangingPin: true,
+            returnRoute: returnRoute,
+          );
+        },
+      ),
+      // Lock screen route
+      GoRoute(
+        path: '/lock',
+        name: 'lock',
+        builder: (context, state) {
+          final returnRoute = state.uri.queryParameters['returnRoute'];
+          return LockScreen(returnRoute: returnRoute);
+        },
+      ),
+      // Legal document routes
+      GoRoute(
+        path: '/settings/legal/:type',
+        name: 'legal-document',
+        builder: (context, state) {
+          final typeString = state.pathParameters['type']!;
+          final documentType = LegalDocumentType.fromString(typeString);
+          return LegalDocumentDetailScreen(documentType: documentType);
+        },
       ),
     ],
   );

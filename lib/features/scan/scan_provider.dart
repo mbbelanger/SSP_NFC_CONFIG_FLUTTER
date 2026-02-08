@@ -317,6 +317,7 @@ class ScanNotifier extends StateNotifier<ScanState> {
       final urlToWrite = tagData['writtenUrl'] as String?;
 
       // Step 2: Write URL to tag if enabled
+      // Use the current tag from the initial scan - no need to tap again
       if (state.writeUrlEnabled && urlToWrite != null) {
         state = state.copyWith(
           status: ScanStatus.writing,
@@ -324,40 +325,16 @@ class ScanNotifier extends StateNotifier<ScanState> {
           registeredTag: tag,
         );
 
-        // Stop current session and start write session
-        _nfcService.stopSession();
-
-        _writeCompleter = Completer<void>();
         String? writeError;
         bool writeSuccess = false;
 
-        await _nfcService.startWriteSession(
-          url: urlToWrite,
-          password: state.lockPassword,
-          onSuccess: (writtenUid, info) {
-            writeSuccess = true;
-            _writeCompleter?.complete();
-          },
-          onError: (error) {
-            writeError = error;
-            _writeCompleter?.complete();
-          },
-        );
-
-        // Wait for user to tap tag again (with timeout)
         try {
-          await _writeCompleter!.future.timeout(
-            const Duration(seconds: 60),
-            onTimeout: () {
-              writeError = 'Write timed out. Tag registered but not written.';
-            },
-          );
+          // Write directly to the current tag without restarting session
+          await _nfcService.writeUrlToCurrentTag(urlToWrite, state.lockPassword);
+          writeSuccess = true;
         } catch (e) {
           writeError = e.toString();
         }
-
-        _nfcService.stopSession();
-        _writeCompleter = null;
 
         if (!writeSuccess && writeError != null) {
           _addHistoryEntry(uid, tableId, tableName, true, 'URL write failed: $writeError');
