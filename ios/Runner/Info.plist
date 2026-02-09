@@ -46,6 +46,23 @@
 	<key>UIApplicationSupportsIndirectInputEvents</key>
 	<true/>
 
+	<!-- Face ID for biometric re-authentication before NFC operations -->
+	<key>NSFaceIDUsageDescription</key>
+	<string>Verify your identity to configure NFC tags</string>
+
+	<!-- Google Sign-In URL Scheme (replace YOUR_IOS_CLIENT_ID with actual client ID) -->
+	<key>CFBundleURLTypes</key>
+	<array>
+		<dict>
+			<key>CFBundleTypeRole</key>
+			<string>Editor</string>
+			<key>CFBundleURLSchemes</key>
+			<array>
+				<string>com.googleusercontent.apps.YOUR_IOS_CLIENT_ID</string>
+			</array>
+		</dict>
+	</array>
+
 	<!-- NFC Configuration -->
 	<key>NFCReaderUsageDescription</key>
 	<string>SSP NFC Registration uses NFC to read, register, and configure table tags for your restaurant.</string>

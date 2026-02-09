@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
+import '../../models/legal_document.dart';
 import '../auth/auth_provider.dart';
 import '../location/location_provider.dart';
 
@@ -60,18 +61,42 @@ class SettingsScreen extends ConsumerWidget {
           ListTile(
             leading: const Icon(Icons.description_outlined),
             title: const Text('Terms of Service'),
-            trailing: const Icon(Icons.open_in_new, size: 18),
-            onTap: () {
-              // Open terms of service
-            },
+            trailing: const Icon(Icons.chevron_right),
+            onTap: () => context.push(
+              '/settings/legal/${LegalDocumentType.termsOfService.value}',
+            ),
           ),
           ListTile(
             leading: const Icon(Icons.privacy_tip_outlined),
             title: const Text('Privacy Policy'),
-            trailing: const Icon(Icons.open_in_new, size: 18),
-            onTap: () {
-              // Open privacy policy
-            },
+            trailing: const Icon(Icons.chevron_right),
+            onTap: () => context.push(
+              '/settings/legal/${LegalDocumentType.privacyPolicy.value}',
+            ),
+          ),
+          ListTile(
+            leading: const Icon(Icons.verified_user_outlined),
+            title: const Text('Acceptable Use Policy'),
+            trailing: const Icon(Icons.chevron_right),
+            onTap: () => context.push(
+              '/settings/legal/${LegalDocumentType.acceptableUsePolicy.value}',
+            ),
+          ),
+          ListTile(
+            leading: const Icon(Icons.cookie_outlined),
+            title: const Text('Cookie Policy'),
+            trailing: const Icon(Icons.chevron_right),
+            onTap: () => context.push(
+              '/settings/legal/${LegalDocumentType.cookiePolicy.value}',
+            ),
+          ),
+          ListTile(
+            leading: const Icon(Icons.article_outlined),
+            title: const Text('End User License Agreement'),
+            trailing: const Icon(Icons.chevron_right),
+            onTap: () => context.push(
+              '/settings/legal/${LegalDocumentType.eula.value}',
+            ),
           ),
           const Divider(),
 

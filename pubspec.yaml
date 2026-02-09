@@ -36,6 +36,23 @@ dependencies:
   intl: ^0.20.2
   flutter_dotenv: ^6.0.0
 
+  # Social Login
+  google_sign_in: ^6.2.2
+  sign_in_with_apple: ^6.1.1
+  crypto: ^3.0.3
+
+  # Device Info
+  device_info_plus: ^10.1.0
+
+  # QR Code (for TOTP setup)
+  qr_flutter: ^4.1.0
+
+  # Markdown rendering
+  flutter_markdown: ^0.6.18
+
+  # Biometric Authentication
+  local_auth: ^2.3.0
+
 dev_dependencies:
   flutter_test:
     sdk: flutter

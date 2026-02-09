@@ -37,6 +37,7 @@ class GraphQLMutations {
   ''';
 
   // Verify two-factor authentication with remember device support
+  // Note: User data is already returned from loginSSPUser (step 1), reuse it after 2FA succeeds
   static const String verifyTwoFactorAuthentication = '''
     mutation VerifyTwoFactorAuthentication(
       \$challengeToken: String!,
@@ -54,11 +55,6 @@ class GraphQLMutations {
         status
         token
         device_token
-        user {
-          id
-          name
-          email
-        }
       }
     }
   ''';
@@ -179,6 +175,165 @@ class GraphQLMutations {
           name
           local_id
         }
+      }
+    }
+  ''';
+
+  // ============================================
+  // Social Login
+  // ============================================
+
+  static const String socialLogin = '''
+    mutation SocialLogin(\$input: SocialLoginInput!, \$device_token: String, \$device_name: String) {
+      socialLogin(input: \$input, device_token: \$device_token, device_name: \$device_name) {
+        token
+        expires_in
+        requiresTwoFactor
+        challenge_token
+        requiresOrganizationSelection
+        selection_token
+        user {
+          id
+          name
+          email
+          two_factor_enabled
+          locations {
+            id
+            name
+            address
+            city
+            state
+            timezone
+          }
+          organization {
+            id
+            name
+          }
+        }
+        organizations {
+          id
+          name
+        }
+      }
+    }
+  ''';
+
+  // ============================================
+  // Two-Factor Authentication Setup & Management
+  // ============================================
+
+  static const String enableTwoFactorAuthentication = '''
+    mutation EnableTwoFactor(\$channel: TwoFactorChannel!, \$phone: String) {
+      enableTwoFactorAuthentication(channel: \$channel, phone: \$phone) {
+        qr_code
+        channel
+        message
+        code_expires_at
+      }
+    }
+  ''';
+
+  static const String confirmTwoFactorAuthentication = '''
+    mutation ConfirmTwoFactor(\$code: String!) {
+      confirmTwoFactorAuthentication(code: \$code) {
+        success
+        channel
+        recovery_codes
+      }
+    }
+  ''';
+
+  static const String disableTwoFactorAuthentication = '''
+    mutation DisableTwoFactor(\$currentPassword: String, \$code: String) {
+      disableTwoFactorAuthentication(currentPassword: \$currentPassword, code: \$code) {
+        status
+      }
+    }
+  ''';
+
+  static const String regenerateTwoFactorRecoveryCodes = '''
+    mutation RegenerateRecoveryCodes(\$password: String!) {
+      regenerateTwoFactorRecoveryCodes(password: \$password) {
+        recovery_codes
+        count
+      }
+    }
+  ''';
+
+  // ============================================
+  // Trusted Devices Management
+  // ============================================
+
+  static const String revokeTrustedDevice = '''
+    mutation RevokeDevice(\$deviceId: ID!) {
+      revokeTrustedDevice(deviceId: \$deviceId) {
+        success
+        message
+      }
+    }
+  ''';
+
+  static const String revokeAllTrustedDevices = '''
+    mutation RevokeAllDevices {
+      revokeAllTrustedDevices {
+        success
+        revoked_count
+      }
+    }
+  ''';
+
+  // ============================================
+  // NFC Write Authorization (Re-Authentication)
+  // ============================================
+
+  static const String requestNfcWriteAuthorization = '''
+    mutation RequestNfcWriteAuth(\$input: ReAuthInput!) {
+      requestNfcWriteAuthorization(input: \$input) {
+        nfc_write_token
+        expires_at
+        single_use
+      }
+    }
+  ''';
+
+  static const String requestNfcBulkWriteAuthorization = '''
+    mutation RequestNfcBulkAuth(\$input: ReAuthInput!) {
+      requestNfcBulkWriteAuthorization(input: \$input) {
+        nfc_write_token
+        expires_at
+        max_operations
+        single_use
+      }
+    }
+  ''';
+
+  // ============================================
+  // App PIN Management
+  // ============================================
+
+  static const String setupAppPin = '''
+    mutation SetupAppPin(\$pin: String!, \$device_id: String!) {
+      setupAppPin(pin: \$pin, device_id: \$device_id) {
+        success
+        message
+      }
+    }
+  ''';
+
+  static const String changeAppPin = '''
+    mutation ChangeAppPin(\$current_pin: String!, \$new_pin: String!, \$device_id: String!) {
+      changeAppPin(current_pin: \$current_pin, new_pin: \$new_pin, device_id: \$device_id) {
+        success
+        message
+      }
+    }
+  ''';
+
+  static const String resetAppPin = '''
+    mutation ResetAppPin(\$password: String!, \$new_pin: String!, \$two_factor_code: String, \$device_id: String!) {
+      resetAppPin(password: \$password, new_pin: \$new_pin, two_factor_code: \$two_factor_code, device_id: \$device_id) {
+        success
+        message
       }
     }
   ''';

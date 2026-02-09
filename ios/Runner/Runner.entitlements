@@ -8,5 +8,11 @@
 		<string>NDEF</string>
 		<string>TAG</string>
 	</array>
+
+	<!-- Sign in with Apple Capability -->
+	<key>com.apple.developer.applesignin</key>
+	<array>
+		<string>Default</string>
+	</array>
 </dict>
 </plist>

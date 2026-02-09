@@ -72,22 +72,35 @@ class NFCService {
           }
 
           try {
-            // Get tag info
-            final info = await _getTagInfo(tag);
-
-            // Write URL to tag
+            // Write URL to tag FIRST - this overwrites any existing content
+            // Do this before any transceive operations to avoid conflicts
             await _writeUrlToTag(tag, url);
 
-            // Lock with password if provided (pass tagType to avoid redundant detection)
+            // Now get tag info and optionally lock
+            // Tag type detection via transceive is safe after NDEF write
+            String? tagType;
             if (password != null && password.isNotEmpty) {
-              await _lockTag(tag, password, tagType: info.tagType);
+              final nfca = _getNfcA(tag);
+              if (nfca != null) {
+                tagType = await _detectNtagType(nfca);
+                if (tagType != null) {
+                  await _lockTag(tag, password, tagType: tagType);
+                }
+              }
             }
 
-            // Stop session immediately after successful write
-            stopSession();
+            // Build basic tag info (skip transceive if we didn't need to lock)
+            final info = NFCTagInfo(
+              uid: uid,
+              isNdef: true,
+              isWritable: true, // We just wrote to it
+              maxSize: _getNdefMaxSize(tag),
+              tagType: tagType,
+              canLock: Platform.isAndroid && _getNfcA(tag) != null,
+            );
+
             onSuccess(uid, info);
           } catch (e) {
-            stopSession();
             onError(e.toString());
           }
         },
@@ -96,6 +109,18 @@ class NFCService {
       _sessionActive = false;
       onError('Failed to start NFC session: $e');
     }
+  }
+
+  /// Get NDEF max size from tag
+  int _getNdefMaxSize(NfcTag tag) {
+    if (Platform.isAndroid) {
+      final ndef = NdefAndroid.from(tag);
+      return ndef?.maxSize ?? 0;
+    } else if (Platform.isIOS) {
+      final ndef = NdefIos.from(tag);
+      return ndef?.capacity ?? 0;
+    }
+    return 0;
   }
 
   /// Start a test/read session to verify what's on the tag
@@ -274,7 +299,7 @@ class NFCService {
         .join(':');
   }
 
-  /// Get tag info
+  /// Get tag info (includes tag type detection via transceive)
   Future<NFCTagInfo> _getTagInfo(NfcTag tag) async {
     try {
       final nfca = _getNfcA(tag);
@@ -422,6 +447,30 @@ class NFCService {
       throw NFCException('No tag available. Scan a tag first.');
     }
     await _writeUrlToTag(_currentTag!, url);
+  }
+
+  /// Write URL to the currently scanned tag (single-tap flow)
+  /// This writes to the tag that was detected in the current session
+  Future<void> writeUrlToCurrentTag(String url, String? password) async {
+    if (_currentTag == null) {
+      throw NFCException('No tag available. Scan a tag first.');
+    }
+
+    final tag = _currentTag!;
+
+    // Write URL to tag
+    await _writeUrlToTag(tag, url);
+
+    // Lock with password if provided
+    if (password != null && password.isNotEmpty) {
+      final nfca = _getNfcA(tag);
+      if (nfca != null) {
+        final tagType = await _detectNtagType(nfca);
+        if (tagType != null) {
+          await _lockTag(tag, password, tagType: tagType);
+        }
+      }
+    }
   }
 
   /// Lock NTAG with password protection (Android only)
