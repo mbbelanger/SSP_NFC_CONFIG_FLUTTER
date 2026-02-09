@@ -11,6 +11,9 @@
     <!-- Internet permission for API calls -->
     <uses-permission android:name="android.permission.INTERNET" />
 
+    <!-- Biometric authentication for re-auth before NFC operations -->
+    <uses-permission android:name="android.permission.USE_BIOMETRIC" />
+
     <application
         android:label="SSP NFC Registration"
         android:name="${applicationName}"

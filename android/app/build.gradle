@@ -26,6 +26,7 @@ android {
 
     defaultConfig {
         applicationId = "com.ssppos.nfc.registration"
+        // Minimum SDK 23 required for google_sign_in Credential Manager API
         minSdkVersion flutter.minSdkVersion
         targetSdk 34
         versionCode = flutter.versionCode

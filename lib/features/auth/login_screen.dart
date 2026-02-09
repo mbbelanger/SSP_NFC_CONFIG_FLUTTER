@@ -1,7 +1,10 @@
+import 'dart:io';
+
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
+import '../../core/services/social_auth_service.dart';
 import '../../core/theme/app_theme.dart';
 import 'auth_provider.dart';
 import 'auth_state.dart';
@@ -47,6 +50,46 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
     }
 
     await ref.read(authStateProvider.notifier).login(email, password);
+  }
+
+  Future<void> _handleGoogleSignIn(BuildContext context, WidgetRef ref) async {
+    try {
+      final credentials = await SocialAuthService.signInWithGoogle();
+      if (credentials == null) {
+        // User cancelled - no error to show
+        return;
+      }
+      await ref.read(authStateProvider.notifier).socialLogin(credentials);
+    } catch (e) {
+      if (context.mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Google sign-in failed: ${e.toString()}'),
+            backgroundColor: AppColors.error,
+          ),
+        );
+      }
+    }
+  }
+
+  Future<void> _handleAppleSignIn(BuildContext context, WidgetRef ref) async {
+    try {
+      final credentials = await SocialAuthService.signInWithApple();
+      if (credentials == null) {
+        // User cancelled - no error to show
+        return;
+      }
+      await ref.read(authStateProvider.notifier).socialLogin(credentials);
+    } catch (e) {
+      if (context.mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Apple sign-in failed: ${e.toString()}'),
+            backgroundColor: AppColors.error,
+          ),
+        );
+      }
+    }
   }
 
   @override
@@ -241,44 +284,36 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                       ),
                       elevation: 0,
                     ),
-                    onPressed: () {
-                      // TODO: Implement Google sign-in
-                      ScaffoldMessenger.of(context).showSnackBar(
-                        const SnackBar(content: Text('Google sign-in coming soon')),
-                      );
-                    },
+                    onPressed: authState.isLoading ? null : () => _handleGoogleSignIn(context, ref),
                   ),
                 ),
                 const SizedBox(height: 12),
-                SizedBox(
-                  width: double.infinity,
-                  height: 58,
-                  child: ElevatedButton.icon(
-                    icon: Image.asset(
-                      'assets/images/apple_icon.png',
-                      width: 24,
-                      height: 24,
-                    ),
-                    label: const Text(
-                      'Continue with Apple',
-                      style: TextStyle(fontSize: 16, fontWeight: FontWeight.w600),
-                    ),
-                    style: ElevatedButton.styleFrom(
-                      backgroundColor: Colors.black,
-                      foregroundColor: Colors.white,
-                      shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(8),
+                // Apple Sign-In only available on iOS
+                if (Platform.isIOS)
+                  SizedBox(
+                    width: double.infinity,
+                    height: 58,
+                    child: ElevatedButton.icon(
+                      icon: Image.asset(
+                        'assets/images/apple_icon.png',
+                        width: 24,
+                        height: 24,
                       ),
-                      elevation: 0,
+                      label: const Text(
+                        'Continue with Apple',
+                        style: TextStyle(fontSize: 16, fontWeight: FontWeight.w600),
+                      ),
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: Colors.black,
+                        foregroundColor: Colors.white,
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(8),
+                        ),
+                        elevation: 0,
+                      ),
+                      onPressed: authState.isLoading ? null : () => _handleAppleSignIn(context, ref),
                     ),
-                    onPressed: () {
-                      // TODO: Implement Apple sign-in
-                      ScaffoldMessenger.of(context).showSnackBar(
-                        const SnackBar(content: Text('Apple sign-in coming soon')),
-                      );
-                    },
                   ),
-                ),
 
                 const SizedBox(height: 32),
 

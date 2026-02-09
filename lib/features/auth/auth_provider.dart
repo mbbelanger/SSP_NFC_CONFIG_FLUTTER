@@ -6,9 +6,12 @@ import 'package:graphql_flutter/graphql_flutter.dart';
 import '../../core/api/graphql_client.dart';
 import '../../core/api/graphql_mutations.dart';
 import '../../core/api/graphql_queries.dart';
+import '../../core/services/device_info_service.dart';
+import '../../core/services/social_auth_service.dart';
 import '../../core/storage/secure_storage.dart';
 import '../../models/user.dart';
 import '../../models/organization.dart';
+import '../../models/social_auth_credentials.dart';
 import 'auth_state.dart';
 
 final authStateProvider = StateNotifierProvider<AuthNotifier, AuthState>((ref) {
@@ -300,11 +303,81 @@ class AuthNotifier extends StateNotifier<AuthState> {
   }
 
   Future<void> logout() async {
+    // Sign out from social providers
+    await SocialAuthService.signOut();
     await SecureStorage.clearAuthData();
     state = AuthState.unauthenticated();
   }
 
   void clearError() {
     state = state.copyWith(errorMessage: null);
+  }
+
+  /// Sign in with a social provider (Google or Apple)
+  Future<void> socialLogin(SocialAuthCredentials credentials) async {
+    state = AuthState.loading();
+
+    try {
+      // Get device token and name for trusted device feature
+      final deviceToken = await SecureStorage.getDeviceToken();
+      final deviceName = await DeviceInfoService.getDeviceName();
+
+      final result = await _client.mutate(
+        MutationOptions(
+          document: gql(GraphQLMutations.socialLogin),
+          variables: {
+            'input': {
+              'provider': credentials.providerName,
+              'accessToken': credentials.accessToken,
+              'idToken': credentials.idToken,
+              'authCode': credentials.authCode,
+            },
+            'device_token': deviceToken,
+            'device_name': deviceName,
+          },
+        ),
+      );
+
+      if (result.hasException) {
+        final message = result.exception?.graphqlErrors.firstOrNull?.message ??
+            'Social login failed. Please try again.';
+        state = AuthState.error(message);
+        return;
+      }
+
+      final data = result.data?['socialLogin'];
+      if (data == null) {
+        state = AuthState.error('Invalid response from server');
+        return;
+      }
+
+      // Check if 2FA is required (user may have 2FA enabled)
+      if (data['requiresTwoFactor'] == true) {
+        state = state.copyWith(
+          status: AuthStatus.requiresTwoFactor,
+          challengeToken: data['challenge_token'],
+          email: data['user']?['email'],
+        );
+        return;
+      }
+
+      // Check if org selection is required
+      if (data['requiresOrganizationSelection'] == true) {
+        final orgs = (data['organizations'] as List)
+            .map((o) => Organization.fromJson(o))
+            .toList();
+        state = state.copyWith(
+          status: AuthStatus.requiresOrgSelection,
+          selectionToken: data['selection_token'],
+          organizations: orgs,
+        );
+        return;
+      }
+
+      // Direct login success
+      await _handleLoginSuccess(data);
+    } catch (e) {
+      state = AuthState.error('Network error. Please check your connection.');
+    }
   }
 }

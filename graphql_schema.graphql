@@ -61,6 +61,40 @@ type Query {
   ): NFCDNAResolutionResult!
 
   """
+  [PUBLIC] Get the current version of a legal document by type.
+  Returns the active published version for the specified document type and locale.
+  Used by all clients to display legal documents (privacy policy, terms, etc.).
+  """
+  legalDocument(
+    "The type of legal document to retrieve."
+    type: LegalDocumentType!
+
+    "Language code (default: 'en')."
+    locale: String = "en"
+  ): LegalDocument
+
+  """
+  [PUBLIC] List all current legal documents.
+  Returns all active legal documents for building a legal index page or settings screen.
+  """
+  legalDocuments(
+    "Language code (default: 'en')."
+    locale: String = "en"
+  ): [LegalDocument!]!
+
+  """
+  [PUBLIC] Get version history for a legal document type.
+  Returns all published versions of a document, newest first.
+  """
+  legalDocumentHistory(
+    "The type of legal document."
+    type: LegalDocumentType!
+
+    "Language code (default: 'en')."
+    locale: String = "en"
+  ): [LegalDocument!]!
+
+  """
   Get all organization memberships for the current user.
   Requires the user to be logged into an organization.
   """
@@ -3688,6 +3722,13 @@ enum Permissions {
   MANAGE_MENU_SCHEDULE
 
   """
+  Manage NFC Tags
+  Allows registering, updating, and deactivating NFC tags for tables.
+  Required for setting up NFC-based table identification for guest ordering.
+  """
+  MANAGE_NFC_TAGS
+
+  """
   Manage Orders
   Allows comprehensive management of orders including advanced operations and bulk actions.
   This is a high-level permission for managers who need full order system control.
@@ -4360,6 +4401,13 @@ enum Permissions {
   VIEW_MENU_ITEMS
 
   """
+  View NFC Tags
+  Allows viewing NFC tag information and scan history.
+  Useful for monitoring NFC tag usage and troubleshooting.
+  """
+  VIEW_NFC_TAGS
+
+  """
   View Onboarding Status
   Allows viewing onboarding progress and completion status.
   Helpful for tracking new staff member setup.
@@ -4688,6 +4736,24 @@ enum KitchenLoadLevel {
 
   "Critical load - kitchen at maximum capacity"
   CRITICAL
+}
+
+"Type of legal document."
+enum LegalDocumentType {
+  "Privacy and security policy."
+  PRIVACY_POLICY
+
+  "Terms of service / conditions of use."
+  TERMS_OF_SERVICE
+
+  "Acceptable use policy."
+  ACCEPTABLE_USE_POLICY
+
+  "Cookie policy."
+  COOKIE_POLICY
+
+  "End User License Agreement."
+  EULA
 }
 
 enum ReportType {
@@ -8666,6 +8732,42 @@ type KitchenLoadSnapshotResponse {
   snapshots: [KitchenLoadSnapshot!]
 }
 
+"""
+Represents a legal document served by the platform.
+Legal documents are global (not tenant-specific) and publicly accessible.
+"""
+type LegalDocument {
+  "Unique identifier."
+  id: ID!
+
+  "URL-friendly identifier (e.g., 'privacy-policy')."
+  slug: String!
+
+  "Human-readable title (e.g., 'Privacy & Security Policy')."
+  title: String!
+
+  "Short excerpt for list views (e.g., settings screens)."
+  summary: String
+
+  "Classification key (e.g., 'privacy-policy', 'terms-of-service')."
+  documentType: String!
+
+  "Semantic version (e.g., '1.0.0')."
+  version: String!
+
+  "Language code (e.g., 'en', 'fr')."
+  locale: String!
+
+  "Full document content in markdown format."
+  content: String!
+
+  "When this version becomes legally effective."
+  effectiveAt: DateTime!
+
+  "When this version was published."
+  publishedAt: DateTime
+}
+
 "Represents a single restaurant or business location in the SSP ecosystem."
 type SSPLocation {
   "Unique identifier of the location (required)."
@@ -9614,6 +9716,9 @@ type NFCDNAResolutionResult {
   "What the frontend should do if no active order exists."
   nfcNoOrderBehavior: NFCNoOrderBehavior
 
+  "First name of the assigned waiter (when order auto-created)."
+  waiterFirstName: String
+
   "Human-readable message for display to guests."
   message: String
 }
@@ -9655,6 +9760,9 @@ type NFCResolutionResult {
 
   "What the frontend should do if no active order exists."
   nfcNoOrderBehavior: NFCNoOrderBehavior
+
+  "First name of the assigned waiter (when order auto-created)."
+  waiterFirstName: String
 
   "Human-readable message for display to guests."
   message: String

@@ -11,6 +11,9 @@ class SecureStorage {
   static const _refreshTokenKey = 'refresh_token';
   static const _deviceTokenKey = 'device_token';
   static const _userKey = 'user_data';
+  static const _pinHashKey = 'pin_hash';
+  static const _pinAttemptsKey = 'pin_attempts';
+  static const _pinLockoutKey = 'pin_lockout_until';
 
   // Token management
   static Future<void> saveToken(String token) async {
@@ -86,5 +89,59 @@ class SecureStorage {
   static Future<bool> isAuthenticated() async {
     final token = await getToken();
     return token != null && token.isNotEmpty;
+  }
+
+  // PIN hash management
+  static Future<void> savePinHash(String pinHash) async {
+    await _storage.write(key: _pinHashKey, value: pinHash);
+  }
+
+  static Future<String?> getPinHash() async {
+    return await _storage.read(key: _pinHashKey);
+  }
+
+  static Future<void> deletePinHash() async {
+    await _storage.delete(key: _pinHashKey);
+  }
+
+  static Future<bool> hasPinSetup() async {
+    final hash = await getPinHash();
+    return hash != null && hash.isNotEmpty;
+  }
+
+  // PIN attempt tracking for brute-force protection
+  static Future<int> getPinAttempts() async {
+    final attempts = await _storage.read(key: _pinAttemptsKey);
+    return attempts != null ? int.tryParse(attempts) ?? 0 : 0;
+  }
+
+  static Future<void> incrementPinAttempts() async {
+    final current = await getPinAttempts();
+    await _storage.write(key: _pinAttemptsKey, value: (current + 1).toString());
+  }
+
+  static Future<void> resetPinAttempts() async {
+    await _storage.delete(key: _pinAttemptsKey);
+  }
+
+  // PIN lockout management
+  static Future<DateTime?> getPinLockoutUntil() async {
+    final lockout = await _storage.read(key: _pinLockoutKey);
+    if (lockout == null) return null;
+    return DateTime.tryParse(lockout);
+  }
+
+  static Future<void> setPinLockoutUntil(DateTime until) async {
+    await _storage.write(key: _pinLockoutKey, value: until.toIso8601String());
+  }
+
+  static Future<void> clearPinLockout() async {
+    await _storage.delete(key: _pinLockoutKey);
+  }
+
+  static Future<bool> isPinLockedOut() async {
+    final lockoutUntil = await getPinLockoutUntil();
+    if (lockoutUntil == null) return false;
+    return DateTime.now().isBefore(lockoutUntil);
   }
 }
